@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LifespanResult } from "@/lib/calculator";
 import { formatSeconds } from "@/lib/calculator";
 import CategoryBreakdown from "@/components/CategoryBreakdown";
-import KosukumaSvg from "./KosukumaSvg";
+import KosukumaIllustration from "./KosukumaIllustration";
 
 interface Props {
   result: LifespanResult;
@@ -13,13 +13,32 @@ interface Props {
 }
 
 type RevealStage = "loading" | "lifespan" | "healthy" | "awake" | "detail";
+type CountdownMode = "lifespan" | "healthy" | "awake";
 
-function CountdownTimer({ seconds: initialSeconds, label }: { seconds: number; label: string }) {
+const BLACK = "#000000";
+const RED = "#dc1414";
+const BLACK_SUB = "rgba(0,0,0,0.7)";
+
+function CountdownTimer({
+  seconds: initialSeconds,
+  label,
+  large = false,
+}: {
+  seconds: number;
+  label: string;
+  large?: boolean;
+}) {
   const [currentSeconds, setCurrentSeconds] = useState(initialSeconds);
+  const endTimeRef = useRef(Date.now() + initialSeconds * 1000);
+
+  useEffect(() => {
+    setCurrentSeconds(initialSeconds);
+    endTimeRef.current = Date.now() + initialSeconds * 1000;
+  }, [initialSeconds]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSeconds((s) => Math.max(s - 1, 0));
+      setCurrentSeconds(Math.max(0, Math.floor((endTimeRef.current - Date.now()) / 1000)));
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -37,23 +56,29 @@ function CountdownTimer({ seconds: initialSeconds, label }: { seconds: number; l
   return (
     <div className="text-center">
       <p
-        className="text-[10px] tracking-[0.25em] uppercase mb-4 font-[family-name:var(--font-mono)]"
-        style={{ color: "rgba(255,255,255,0.25)" }}
+        className="text-[clamp(10px,1.2vw,14px)] tracking-[0.25em] uppercase mb-4 font-[family-name:var(--font-mono)]"
+        style={{ color: BLACK_SUB }}
       >
         {label}
       </p>
       <div className="flex items-baseline justify-center gap-1">
         {units.map((u, i) => (
           <div key={i} className="flex items-baseline">
-            <span
-              className="font-[family-name:var(--font-mono)] text-[clamp(1.5rem,4vw,2.8rem)] font-extralight tabular-nums"
-              style={{ color: "rgba(255,255,255,0.9)" }}
+            <motion.span
+              key={`${u.label}-${u.value}`}
+              initial={u.label === "秒" ? { opacity: 0.7 } : false}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15 }}
+              className={`font-[family-name:var(--font-mono)] font-light tabular-nums ${
+                large ? "text-[clamp(1.8rem,5vw,4rem)]" : "text-[clamp(1.5rem,4vw,3.2rem)]"
+              } ${u.label === "秒" ? "countdown-flicker" : ""}`}
+              style={{ color: RED }}
             >
               {String(u.value).padStart(u.label === "年" ? 1 : 2, "0")}
-            </span>
+            </motion.span>
             <span
-              className="text-[10px] ml-0.5 mr-2"
-              style={{ color: "rgba(255,255,255,0.25)" }}
+              className="text-[clamp(10px,1.1vw,14px)] ml-0.5 mr-2"
+              style={{ color: BLACK }}
             >
               {u.label}
             </span>
@@ -64,15 +89,38 @@ function CountdownTimer({ seconds: initialSeconds, label }: { seconds: number; l
   );
 }
 
+// EKG SVG path
+function EKGLine() {
+  const pathLength = 320;
+  return (
+    <svg width="200" height="40" viewBox="0 0 200 40" aria-hidden="true">
+      <motion.path
+        d="M0,20 L30,20 L40,20 L50,5 L55,35 L60,10 L65,25 L70,20 L100,20 L110,20 L120,5 L125,35 L130,10 L135,25 L140,20 L200,20"
+        fill="none"
+        stroke={RED}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        style={{ pathLength: 0, strokeDasharray: pathLength, strokeDashoffset: pathLength }}
+      />
+    </svg>
+  );
+}
+
 export default function ResultScreen({ result, onRestart }: Props) {
   const [stage, setStage] = useState<RevealStage>("loading");
+  const [countdownMode, setCountdownMode] = useState<CountdownMode>("lifespan");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setStage("lifespan"), 2000),
-      setTimeout(() => setStage("healthy"), 5000),
-      setTimeout(() => setStage("awake"), 8000),
-      setTimeout(() => setStage("detail"), 11000),
+      setTimeout(() => setStage("lifespan"), 3000),
+      setTimeout(() => setStage("healthy"), 8000),
+      setTimeout(() => setStage("awake"), 13000),
+      setTimeout(() => setStage("detail"), 18000),
     ];
     return () => timers.forEach(clearTimeout);
   }, []);
@@ -81,6 +129,22 @@ export default function ResultScreen({ result, onRestart }: Props) {
     setStage("detail");
   }, []);
 
+  const countdownSeconds =
+    countdownMode === "lifespan" ? result.remainingSeconds
+    : countdownMode === "healthy" ? result.remainingHealthySeconds
+    : result.remainingAwakeSeconds;
+
+  const countdownLabel =
+    countdownMode === "lifespan" ? "あなたの残り時間"
+    : countdownMode === "healthy" ? "健康でいられる時間"
+    : "起きていられる時間";
+
+  const lifespanTabs = [
+    { key: "lifespan" as const, label: "推定寿命", value: result.estimatedLifespan },
+    { key: "healthy" as const, label: "健康寿命", value: result.healthyLifespan },
+    { key: "awake" as const, label: "起床寿命", value: result.awakeLifespan, sub: "睡眠を除く" },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -88,8 +152,9 @@ export default function ResultScreen({ result, onRestart }: Props) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.8 }}
       className="flex flex-col items-center min-h-screen px-6 py-12"
+      style={{ backgroundColor: "#ffffff" }}
     >
-      {/* Skip button during reveal */}
+      {/* Skip button */}
       {stage !== "detail" && stage !== "loading" && (
         <motion.button
           initial={{ opacity: 0 }}
@@ -97,14 +162,14 @@ export default function ResultScreen({ result, onRestart }: Props) {
           onClick={skipToDetail}
           className="fixed bottom-8 z-20 cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
         >
-          <span className="text-[10px] tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.2)" }}>
+          <span className="text-[clamp(10px,1vw,14px)] tracking-[0.2em]" style={{ color: BLACK_SUB }}>
             skip →
           </span>
         </motion.button>
       )}
 
       <AnimatePresence mode="wait">
-        {/* Loading */}
+        {/* Loading — EKG heartbeat monitor */}
         {stage === "loading" && (
           <motion.div
             key="loading"
@@ -114,24 +179,25 @@ export default function ResultScreen({ result, onRestart }: Props) {
             transition={{ duration: 0.5 }}
             className="flex-1 flex items-center justify-center"
           >
-            <div className="text-center flex flex-col items-center gap-6">
+            <div className="text-center flex flex-col items-center gap-8">
               <motion.div
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                animate={{ y: [0, -8, 0], scale: [1, 1.02, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               >
-                <KosukumaSvg size={80} mood="thinking" />
+                <KosukumaIllustration size={100} />
               </motion.div>
               <motion.div
-                animate={{ opacity: [0.2, 0.6, 0.2] }}
-                transition={{ duration: 2, repeat: Infinity }}
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
               >
                 <p
-                  className="font-[family-name:var(--font-mono)] text-xs tracking-[0.3em]"
-                  style={{ color: "rgba(255,255,255,0.3)" }}
+                  className="font-[family-name:var(--font-mono)] text-xs tracking-[0.4em]"
+                  style={{ color: RED }}
                 >
-                  CALCULATING
+                  ANALYZING
                 </p>
               </motion.div>
+              <EKGLine />
             </div>
           </motion.div>
         )}
@@ -143,41 +209,41 @@ export default function ResultScreen({ result, onRestart }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 1.2 }}
             className="flex-1 flex flex-col items-center justify-center"
           >
             <motion.p
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-sm mb-8 tracking-wide"
-              style={{ color: "rgba(255,255,255,0.4)" }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="text-[clamp(14px,1.8vw,20px)] mb-10 tracking-wide"
+              style={{ color: BLACK }}
             >
               あなたの推定寿命
             </motion.p>
             <motion.p
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
-              className="font-[family-name:var(--font-mono)] text-6xl font-extralight"
-              style={{ color: "rgba(255,255,255,0.9)" }}
+              initial={{ opacity: 0, scale: 0.5, filter: "blur(10px)" }}
+              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+              transition={{ delay: 1, duration: 1.5, ease: "easeOut" }}
+              className="font-[family-name:var(--font-mono)] text-[clamp(4rem,14vw,9rem)] font-light"
+              style={{ color: RED }}
             >
               {result.estimatedLifespan}
             </motion.p>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="mt-2 text-sm"
-              style={{ color: "rgba(255,255,255,0.25)" }}
+              transition={{ delay: 2 }}
+              className="mt-3 text-[clamp(18px,2.5vw,28px)]"
+              style={{ color: RED }}
             >
               歳
             </motion.p>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.5 }}
-              className="mt-10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.8, duration: 0.8 }}
+              className="mt-12"
             >
               <CountdownTimer seconds={result.remainingSeconds} label="残り時間" />
             </motion.div>
@@ -191,41 +257,41 @@ export default function ResultScreen({ result, onRestart }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 1.2 }}
             className="flex-1 flex flex-col items-center justify-center"
           >
             <motion.p
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-sm mb-8 tracking-wide"
-              style={{ color: "rgba(255,255,255,0.4)" }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="text-[clamp(14px,1.8vw,20px)] mb-10 tracking-wide"
+              style={{ color: BLACK }}
             >
               健康寿命
             </motion.p>
             <motion.p
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
-              className="font-[family-name:var(--font-mono)] text-6xl font-extralight"
-              style={{ color: "rgba(255,255,255,0.9)" }}
+              initial={{ opacity: 0, scale: 0.5, filter: "blur(10px)" }}
+              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+              transition={{ delay: 1, duration: 1.5, ease: "easeOut" }}
+              className="font-[family-name:var(--font-mono)] text-[clamp(4rem,14vw,9rem)] font-light"
+              style={{ color: RED }}
             >
               {result.healthyLifespan}
             </motion.p>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="mt-2 text-sm"
-              style={{ color: "rgba(255,255,255,0.25)" }}
+              transition={{ delay: 2 }}
+              className="mt-3 text-[clamp(18px,2.5vw,28px)]"
+              style={{ color: RED }}
             >
               歳
             </motion.p>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.5 }}
-              className="mt-10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.8, duration: 0.8 }}
+              className="mt-12"
             >
               <CountdownTimer seconds={result.remainingHealthySeconds} label="健康でいられる時間" />
             </motion.div>
@@ -239,25 +305,25 @@ export default function ResultScreen({ result, onRestart }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 1.2 }}
             className="flex-1 flex flex-col items-center justify-center"
           >
             <motion.p
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-sm mb-8 tracking-wide"
-              style={{ color: "rgba(255,255,255,0.4)" }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="text-[clamp(14px,1.8vw,20px)] mb-10 tracking-wide"
+              style={{ color: BLACK }}
             >
-              睡眠を除いた残り時間
+              起きていられる時間
             </motion.p>
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
+              transition={{ delay: 1, duration: 1.2 }}
               className="mt-4"
             >
-              <CountdownTimer seconds={result.remainingAwakeSeconds} label="起きていられる時間" />
+              <CountdownTimer seconds={result.remainingAwakeSeconds} label="睡眠を除いた残り" large />
             </motion.div>
           </motion.div>
         )}
@@ -268,44 +334,57 @@ export default function ResultScreen({ result, onRestart }: Props) {
             key="detail"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.8 }}
-            className="w-full max-w-lg mx-auto pt-8"
+            transition={{ duration: 1 }}
+            className="w-full max-w-2xl mx-auto pt-8"
           >
-            {/* Kosukuma reaction */}
+            {/* Kosukuma */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1, duration: 0.5 }}
+              transition={{ delay: 0.1, duration: 0.6 }}
               className="flex justify-center mb-6"
             >
-              <KosukumaSvg size={72} mood={result.totalImpact >= 0 ? "happy" : "surprised"} />
+              <KosukumaIllustration size={140} />
             </motion.div>
 
-            {/* Summary numbers */}
-            <div className="grid grid-cols-3 gap-4 mb-12">
-              {[
-                { label: "推定寿命", value: `${result.estimatedLifespan}歳` },
-                { label: "健康寿命", value: `${result.healthyLifespan}歳` },
-                { label: "起床寿命", value: `${result.awakeLifespan}歳` },
-              ].map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + i * 0.15 }}
-                  className="text-center"
-                >
-                  <p className="text-[9px] tracking-[0.2em] mb-2" style={{ color: "rgba(255,255,255,0.2)" }}>
-                    {item.label}
-                  </p>
-                  <p
-                    className="font-[family-name:var(--font-mono)] text-xl font-extralight"
-                    style={{ color: "rgba(255,255,255,0.8)" }}
+            {/* Clickable lifespan tabs */}
+            <div className="grid grid-cols-3 gap-2 mb-10">
+              {lifespanTabs.map((tab, i) => {
+                const isActive = countdownMode === tab.key;
+                return (
+                  <motion.button
+                    key={tab.key}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 + i * 0.12 }}
+                    onClick={() => setCountdownMode(tab.key)}
+                    className="text-center cursor-pointer py-3 rounded-sm transition-all duration-300"
+                    style={{
+                      backgroundColor: isActive ? "rgba(220,20,20,0.05)" : "transparent",
+                      border: isActive ? `1px solid ${RED}` : "1px solid rgba(0,0,0,0.1)",
+                    }}
                   >
-                    {item.value}
-                  </p>
-                </motion.div>
-              ))}
+                    <p className="text-[clamp(9px,1vw,13px)] tracking-[0.15em] mb-1.5" style={{
+                      color: isActive ? BLACK : BLACK_SUB,
+                    }}>
+                      {tab.label}
+                    </p>
+                    <p
+                      className="font-[family-name:var(--font-mono)] text-[clamp(1.25rem,2.5vw,2rem)] font-light transition-colors duration-300"
+                      style={{
+                        color: isActive ? RED : "rgba(220,20,20,0.3)",
+                      }}
+                    >
+                      {tab.value}歳
+                    </p>
+                    {tab.sub && (
+                      <p className="text-[clamp(7px,0.8vw,11px)] mt-0.5" style={{ color: BLACK_SUB }}>
+                        {tab.sub}
+                      </p>
+                    )}
+                  </motion.button>
+                );
+              })}
             </div>
 
             {/* Live countdown */}
@@ -315,7 +394,17 @@ export default function ResultScreen({ result, onRestart }: Props) {
               transition={{ delay: 0.6 }}
               className="mb-14"
             >
-              <CountdownTimer seconds={result.remainingSeconds} label="あなたの残り時間" />
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={countdownMode}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <CountdownTimer seconds={countdownSeconds} label={countdownLabel} large />
+                </motion.div>
+              </AnimatePresence>
             </motion.div>
 
             {/* Category breakdown */}
@@ -333,21 +422,21 @@ export default function ResultScreen({ result, onRestart }: Props) {
               animate={{ opacity: 1 }}
               transition={{ delay: 1.2 }}
               className="mt-10 text-center py-6 border-t border-b"
-              style={{ borderColor: "rgba(255,255,255,0.06)" }}
+              style={{ borderColor: "rgba(0,0,0,0.1)" }}
             >
-              <p className="text-[10px] tracking-[0.2em] mb-2" style={{ color: "rgba(255,255,255,0.2)" }}>
+              <p className="text-[clamp(10px,1.1vw,14px)] tracking-[0.2em] mb-2" style={{ color: BLACK_SUB }}>
                 総合影響
               </p>
               <p
-                className="font-[family-name:var(--font-mono)] text-2xl font-extralight"
+                className="font-[family-name:var(--font-mono)] text-[clamp(1.8rem,4vw,3rem)] font-light"
                 style={{
-                  color: result.totalImpact >= 0 ? "rgba(130,220,180,0.8)" : "rgba(220,130,130,0.8)",
+                  color: result.totalImpact >= 0 ? "#0a8a50" : RED,
                 }}
               >
                 {result.totalImpact >= 0 ? "+" : ""}
                 {result.totalImpact.toFixed(1)}年
               </p>
-              <p className="text-[10px] mt-2" style={{ color: "rgba(255,255,255,0.15)" }}>
+              <p className="text-[clamp(10px,1.1vw,14px)] mt-2" style={{ color: BLACK_SUB }}>
                 平均寿命 {result.baseLifespan}歳 からの変動
               </p>
             </motion.div>
@@ -359,7 +448,6 @@ export default function ResultScreen({ result, onRestart }: Props) {
               transition={{ delay: 1.5 }}
               className="mt-10 flex flex-col items-center gap-4 pb-8"
             >
-              {/* Share */}
               <button
                 onClick={() => {
                   const text = `あと${formatSeconds(result.remainingSeconds).years}年${formatSeconds(result.remainingSeconds).days}日。\n推定寿命: ${result.estimatedLifespan}歳\n\nあと何秒、生きられる？`;
@@ -367,25 +455,26 @@ export default function ResultScreen({ result, onRestart }: Props) {
                     navigator.share({ title: "あと何秒、生きられる？", text });
                   } else {
                     navigator.clipboard.writeText(text);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
                   }
                 }}
-                className="px-10 py-3 border transition-all duration-300 cursor-pointer hover:bg-white/5"
-                style={{ borderColor: "rgba(255,255,255,0.2)", borderRadius: "2px" }}
+                className="px-10 py-3 border transition-all duration-300 cursor-pointer hover:bg-red-50 active:scale-95"
+                style={{
+                  borderColor: RED,
+                  borderRadius: "2px",
+                }}
               >
                 <span
-                  className="font-[family-name:var(--font-mono)] text-xs tracking-[0.3em] uppercase"
-                  style={{ color: "rgba(255,255,255,0.5)" }}
+                  className="font-[family-name:var(--font-mono)] text-[clamp(12px,1.2vw,16px)] tracking-[0.3em] uppercase"
+                  style={{ color: BLACK }}
                 >
-                  Share
+                  {copied ? "Copied!" : "Share"}
                 </span>
               </button>
 
-              {/* Restart */}
-              <button
-                onClick={onRestart}
-                className="cursor-pointer"
-              >
-                <span className="text-[10px] tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.15)" }}>
+              <button onClick={onRestart} className="cursor-pointer active:scale-95">
+                <span className="text-[clamp(10px,1vw,14px)] tracking-[0.15em]" style={{ color: BLACK_SUB }}>
                   もう一度やる
                 </span>
               </button>

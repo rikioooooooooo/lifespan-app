@@ -1,18 +1,40 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { questions, categories } from "@/data/questions";
 import type { BasicInfo, Answers } from "@/lib/calculator";
 import KosukumaSvg from "./KosukumaSvg";
+import { setBackgroundProgress } from "./Background";
 
 interface Props {
   basicInfo: BasicInfo;
   onComplete: (answers: Answers) => void;
 }
 
-const SCALE_STEPS = 7; // 0〜6
-const BUTTON_SIZE = 38; // uniform size for all scale buttons
+const SCALE_STEPS = 7;
+const BUTTON_SIZE = 40;
+
+// Color gradient for scale buttons: maps position to color based on question direction
+function getScaleColor(index: number, dir: 1 | -1, isSelected: boolean) {
+  if (!isSelected) return { border: "rgba(255,255,255,0.12)", bg: "transparent", dot: "rgba(255,255,255,0.5)" };
+
+  // For dir=1 (positive): left=bad(red), right=good(green-white)
+  // For dir=-1 (negative): left=good, right=bad(red)
+  const t = index / (SCALE_STEPS - 1);
+  const danger = dir === 1 ? 1 - t : t;
+
+  const r = Math.round(255);
+  const g = Math.round(40 + (1 - danger) * 215);
+  const b = Math.round(40 + (1 - danger) * 215);
+  const alpha = 0.5 + danger * 0.3;
+
+  return {
+    border: `rgba(${r},${g},${b},${alpha})`,
+    bg: `rgba(${r},${g},${b},${0.06 + danger * 0.06})`,
+    dot: `rgba(${r},${g},${b},${0.7 + danger * 0.2})`,
+  };
+}
 
 export default function QuestionScreen({ basicInfo, onComplete }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -20,9 +42,22 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
   const [sleepValue, setSleepValue] = useState(7);
   const [direction, setDirection] = useState(1);
   const transitioning = useRef(false);
+  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const total = questions.length;
   const safeIndex = Math.min(currentIndex, total - 1);
+
+  useEffect(() => {
+    return () => {
+      if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+      setBackgroundProgress(0);
+    };
+  }, []);
+
+  // Sync quiz progress to background heartbeat speed
+  useEffect(() => {
+    setBackgroundProgress(safeIndex / total);
+  }, [safeIndex, total]);
   const question = questions[safeIndex];
   const progress = ((safeIndex) / total) * 100;
 
@@ -53,7 +88,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
 
       if (currentIndex < total - 1) {
         setDirection(1);
-        setTimeout(() => {
+        advanceTimeoutRef.current = setTimeout(() => {
           setCurrentIndex((i) => Math.min(i + 1, total - 1));
           transitioning.current = false;
         }, 400);
@@ -65,6 +100,11 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
   );
 
   const handleBack = useCallback(() => {
+    if (advanceTimeoutRef.current) {
+      clearTimeout(advanceTimeoutRef.current);
+      advanceTimeoutRef.current = null;
+    }
+    transitioning.current = false;
     if (currentIndex > 0) {
       setDirection(-1);
       setCurrentIndex((i) => i - 1);
@@ -81,19 +121,23 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
     exit: (dir: number) => ({ x: dir > 0 ? -50 : 50, opacity: 0 }),
   };
 
+  // Progress bar color shifts from white to red as you approach the end
+  const progressColor = `rgba(255,${Math.max(0, Math.round(255 - progress * 2.2))},${Math.max(0, Math.round(255 - progress * 2.4))},${0.35 + progress * 0.003})`;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col min-h-screen px-5"
+      className="flex flex-col min-h-screen px-5 pb-8"
     >
-      {/* Progress bar */}
-      <div className="fixed top-0 left-0 right-0 z-20 h-[3px]" style={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
+
+      {/* Progress bar — fades from white to red */}
+      <div className="fixed top-0 left-0 right-0 z-20 h-[3px]" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
         <motion.div
           className="h-full"
-          style={{ backgroundColor: "rgba(255,255,255,0.3)" }}
+          style={{ backgroundColor: progressColor }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         />
@@ -104,7 +148,8 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
         {currentIndex > 0 ? (
           <button
             onClick={handleBack}
-            className="cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2"
+            aria-label="前の質問に戻る"
+            className="cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 transition-opacity duration-200 hover:opacity-80"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M15 18L9 12L15 6" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -119,14 +164,21 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
         </span>
       </div>
 
-      {/* Content area — vertically centered as a group */}
+      {/* Content area */}
       <div className="flex-1 flex flex-col items-center justify-center">
-        {/* Category + emoji */}
+        {/* Category + emoji with red halo for negative questions */}
         <div className="pb-2 text-center">
-          <span className="text-lg">{currentCategory?.emoji}</span>
           <span
-            className="ml-2 font-[family-name:var(--font-mono)] text-[10px] tracking-[0.3em] uppercase align-middle"
-            style={{ color: "rgba(255,255,255,0.2)" }}
+            className="text-xl"
+            style={{
+              filter: "none",
+            }}
+          >
+            {currentCategory?.emoji}
+          </span>
+          <span
+            className="ml-2 font-[family-name:var(--font-mono)] text-xs tracking-[0.25em] uppercase align-middle"
+            style={{ color: "rgba(255,255,255,0.35)" }}
           >
             {question.category}
           </span>
@@ -159,43 +211,47 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
           >
             <p
               className="text-base font-light leading-relaxed tracking-wide mb-10"
-              style={{ color: "rgba(255,255,255,0.85)" }}
+              style={{
+                color: "rgba(255,255,255,0.85)",
+              }}
             >
               {question.text}
             </p>
 
-            {/* Scale UI */}
+            {/* Scale UI — death gradient buttons */}
             {question.type === "scale" && (
               <div className="flex flex-col items-center gap-5">
                 {/* Scale labels */}
                 <div className="flex justify-between w-full px-3">
-                  <span className="text-[10px] max-w-[70px] text-left" style={{ color: "rgba(255,255,255,0.25)" }}>
+                  <span className="text-[10px] max-w-[70px] text-left" style={{
+                    color: "rgba(255,255,255,0.2)",
+                  }}>
                     {question.lowLabel}
                   </span>
-                  <span className="text-[10px] max-w-[70px] text-right" style={{ color: "rgba(255,255,255,0.25)" }}>
+                  <span className="text-[10px] max-w-[70px] text-right" style={{
+                    color: "rgba(255,255,255,0.2)",
+                  }}>
                     {question.highLabel}
                   </span>
                 </div>
 
-                {/* 7 buttons — uniform size */}
-                <div className="flex gap-3 justify-center">
+                {/* 7 buttons — death gradient coloring */}
+                <div className="flex gap-2 justify-center">
                   {Array.from({ length: SCALE_STEPS }, (_, i) => {
                     const isSelected = answers[question.id] === i;
+                    const colors = getScaleColor(i, question.dir, isSelected);
                     return (
                       <motion.button
                         key={i}
                         whileTap={{ scale: 0.85 }}
                         onClick={() => handleAnswer(i)}
-                        className="relative rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center"
+                        className="relative rounded-full border transition-all duration-200 cursor-pointer flex items-center justify-center scale-btn"
                         style={{
                           width: BUTTON_SIZE,
                           height: BUTTON_SIZE,
-                          borderColor: isSelected
-                            ? "rgba(255,255,255,0.6)"
-                            : "rgba(255,255,255,0.15)",
-                          backgroundColor: isSelected
-                            ? "rgba(255,255,255,0.12)"
-                            : "transparent",
+                          borderColor: isSelected ? colors.border : "rgba(255,255,255,0.12)",
+                          backgroundColor: isSelected ? colors.bg : "transparent",
+                          boxShadow: isSelected ? `0 0 10px ${colors.bg}` : "none",
                         }}
                       >
                         {isSelected && (
@@ -205,7 +261,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                             style={{
                               width: BUTTON_SIZE * 0.4,
                               height: BUTTON_SIZE * 0.4,
-                              backgroundColor: "rgba(255,255,255,0.7)",
+                              backgroundColor: colors.dot,
                             }}
                           />
                         )}
@@ -215,7 +271,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                 </div>
 
                 {/* Numeric hint */}
-                <div className="flex gap-3 justify-center">
+                <div className="flex gap-2 justify-center">
                   {Array.from({ length: SCALE_STEPS }, (_, i) => (
                     <div
                       key={i}
@@ -223,7 +279,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                       style={{
                         width: BUTTON_SIZE,
                         fontSize: 8,
-                        color: answers[question.id] === i ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.1)",
+                        color: answers[question.id] === i ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.08)",
                       }}
                     >
                       {i + 1}
@@ -233,20 +289,43 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
               </div>
             )}
 
-            {/* Sleep UI */}
+            {/* Sleep UI — red-themed slider */}
             {question.type === "sleep" && (
               <div className="flex flex-col items-center gap-6">
                 <div className="flex items-end gap-2">
-                  <span
+                  <motion.span
+                    key={sleepValue}
+                    initial={{ scale: 1.1, opacity: 0.7 }}
+                    animate={{ scale: 1, opacity: 1 }}
                     className="font-[family-name:var(--font-mono)] text-4xl font-light"
-                    style={{ color: "rgba(255,255,255,0.85)" }}
+                    style={{
+                      color: sleepValue < 5 || sleepValue > 10
+                        ? "rgba(255,60,60,0.85)"
+                        : sleepValue >= 7 && sleepValue <= 8
+                          ? "rgba(255,255,255,0.85)"
+                          : "rgba(255,200,200,0.85)",
+                    }}
                   >
                     {sleepValue}
-                  </span>
+                  </motion.span>
                   <span className="text-sm mb-1" style={{ color: "rgba(255,255,255,0.3)" }}>
                     時間
                   </span>
                 </div>
+
+                {/* Sleep quality hint */}
+                <p className="text-[9px]" style={{
+                  color: sleepValue < 5 || sleepValue > 10
+                    ? "rgba(255,60,60,0.3)"
+                    : sleepValue >= 7 && sleepValue <= 8
+                      ? "rgba(130,220,180,0.25)"
+                      : "rgba(255,255,255,0.15)",
+                }}>
+                  {sleepValue < 5 ? "寿命が縮む睡眠時間" :
+                   sleepValue > 10 ? "過度な睡眠もリスクに" :
+                   sleepValue >= 7 && sleepValue <= 8 ? "理想的な睡眠時間" :
+                   ""}
+                </p>
 
                 <input
                   type="range"
@@ -259,14 +338,18 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                 />
 
                 <div className="flex justify-between w-64">
-                  <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.15)" }}>3h</span>
-                  <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.15)" }}>12h</span>
+                  <span className="text-[10px]" style={{ color: "rgba(255,60,60,0.2)" }}>3h</span>
+                  <span className="text-[10px]" style={{ color: "rgba(255,60,60,0.2)" }}>12h</span>
                 </div>
 
                 <button
                   onClick={handleSleepSubmit}
-                  className="mt-2 px-10 py-3 border transition-all duration-300 cursor-pointer hover:bg-white/5"
-                  style={{ borderColor: "rgba(255,255,255,0.2)", borderRadius: "2px" }}
+                  className="mt-2 px-10 py-3 border transition-all duration-300 cursor-pointer hover:bg-red-900/10 active:scale-95"
+                  style={{
+                    borderColor: "rgba(255,40,40,0.2)",
+                    borderRadius: "2px",
+                    boxShadow: "0 0 12px rgba(255,20,20,0.04)",
+                  }}
                 >
                   <span
                     className="font-[family-name:var(--font-mono)] text-xs tracking-[0.3em] uppercase"

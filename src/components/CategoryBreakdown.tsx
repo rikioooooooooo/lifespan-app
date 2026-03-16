@@ -7,6 +7,11 @@ interface Props {
   categories: CategoryResult[];
 }
 
+const BLACK = "#000000";
+const RED = "#dc1414";
+const BLACK_SUB = "rgba(0,0,0,0.7)";
+const GREEN = "#0a8a50";
+
 const categoryLabels: Record<string, string> = {
   body: "身体",
   mind: "精神",
@@ -20,15 +25,17 @@ export default function CategoryBreakdown({ categories }: Props) {
   return (
     <div className="space-y-5">
       <p
-        className="font-[family-name:var(--font-mono)] text-[10px] tracking-[0.25em] uppercase text-center mb-6"
-        style={{ color: "rgba(255,255,255,0.2)" }}
+        className="font-[family-name:var(--font-mono)] text-[clamp(10px,1.1vw,14px)] tracking-[0.25em] uppercase text-center mb-6"
+        style={{ color: BLACK_SUB }}
       >
         Category Breakdown
       </p>
 
       {categories.map((cat, i) => {
         const isPositive = cat.impact >= 0;
-        const barWidth = Math.min(Math.abs(cat.impact) / cat.maxImpact * 100, 100);
+        const rawWidth = Math.abs(cat.impact) / Math.max(cat.maxImpact, 0.1) * 100;
+        const barWidth = rawWidth < 1 ? 2 : Math.min(rawWidth, 100);
+        const isNeutral = Math.abs(cat.impact) < 0.05;
 
         return (
           <motion.div
@@ -36,41 +43,41 @@ export default function CategoryBreakdown({ categories }: Props) {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="space-y-1.5"
+            className="space-y-2"
           >
             <div className="flex justify-between items-baseline">
               <div className="flex items-baseline gap-2">
                 <span
-                  className="font-[family-name:var(--font-mono)] text-[10px] tracking-[0.15em] uppercase"
-                  style={{ color: "rgba(255,255,255,0.3)" }}
+                  className="font-[family-name:var(--font-mono)] text-[clamp(10px,1.1vw,14px)] tracking-[0.15em] uppercase"
+                  style={{ color: BLACK }}
                 >
                   {cat.label}
                 </span>
                 <span
-                  className="text-[10px]"
-                  style={{ color: "rgba(255,255,255,0.15)" }}
+                  className="text-[clamp(10px,1vw,13px)]"
+                  style={{ color: BLACK_SUB }}
                 >
                   {categoryLabels[cat.id]}
                 </span>
               </div>
               <span
-                className="font-[family-name:var(--font-mono)] text-xs"
+                className="font-[family-name:var(--font-mono)] text-[clamp(12px,1.2vw,16px)] font-medium"
                 style={{
-                  color: Math.abs(cat.impact) < 0.05
-                    ? "rgba(255,255,255,0.3)"
+                  color: isNeutral
+                    ? BLACK_SUB
                     : isPositive
-                      ? "rgba(130,220,180,0.7)"
-                      : "rgba(220,130,130,0.7)",
+                      ? GREEN
+                      : RED,
                 }}
               >
-                {Math.abs(cat.impact) < 0.05 ? "+" : isPositive ? "+" : ""}
-                {Math.abs(cat.impact) < 0.05 ? "0.0" : cat.impact.toFixed(1)}年
+                {isNeutral ? "+" : isPositive ? "+" : ""}
+                {isNeutral ? "0.0" : cat.impact.toFixed(1)}年
               </span>
             </div>
 
             {/* Bar */}
-            <div className="relative h-[3px] w-full" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-              <div className="absolute top-0 left-1/2 w-px h-full" style={{ backgroundColor: "rgba(255,255,255,0.15)" }} />
+            <div className="relative h-[4px] w-full" style={{ backgroundColor: "rgba(0,0,0,0.08)" }}>
+              <div className="absolute top-0 left-1/2 w-px h-full" style={{ backgroundColor: "rgba(0,0,0,0.12)" }} />
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${barWidth / 2}%` }}
@@ -79,7 +86,10 @@ export default function CategoryBreakdown({ categories }: Props) {
                 style={{
                   left: isPositive ? "50%" : undefined,
                   right: isPositive ? undefined : "50%",
-                  backgroundColor: isPositive ? "rgba(130,220,180,0.5)" : "rgba(220,130,130,0.5)",
+                  backgroundColor: rawWidth < 1
+                    ? "rgba(0,0,0,0.1)"
+                    : isPositive ? GREEN : RED,
+                  opacity: rawWidth < 1 ? 1 : 0.8,
                 }}
               />
             </div>

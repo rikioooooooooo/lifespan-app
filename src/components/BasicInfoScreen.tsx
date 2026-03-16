@@ -49,7 +49,7 @@ export default function BasicInfoScreen({ onSubmit }: Props) {
         あなたについて
       </motion.p>
 
-      {/* Gender */}
+      {/* Gender — red accent on selection */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
@@ -60,11 +60,13 @@ export default function BasicInfoScreen({ onSubmit }: Props) {
           <button
             key={g}
             onClick={() => setGender(g)}
-            className="relative px-8 py-3.5 border transition-all duration-300 cursor-pointer active:scale-95"
+            aria-label={g === "male" ? "男性を選択" : "女性を選択"}
+            className="relative px-8 py-3.5 border transition-all duration-300 cursor-pointer active:scale-95 focus:outline-none"
             style={{
-              borderColor: gender === g ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.1)",
-              backgroundColor: gender === g ? "rgba(255,255,255,0.06)" : "transparent",
+              borderColor: gender === g ? "rgba(255,40,40,0.4)" : "rgba(255,255,255,0.1)",
+              backgroundColor: gender === g ? "rgba(255,20,20,0.06)" : "transparent",
               borderRadius: "2px",
+              boxShadow: gender === g ? "0 0 16px rgba(255,20,20,0.08), inset 0 0 12px rgba(255,20,20,0.03)" : "none",
             }}
           >
             <span
@@ -77,33 +79,46 @@ export default function BasicInfoScreen({ onSubmit }: Props) {
         ))}
       </motion.div>
 
-      {/* Age */}
+      {/* Age — red glow on focus */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45, duration: 0.5 }}
         className="flex flex-col items-center gap-3 mb-12"
       >
-        <label className="text-xs tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.3)" }}>
+        <label htmlFor="age-input" className="text-xs tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.3)" }}>
           年齢
         </label>
         <input
+          id="age-input"
           type="number"
           inputMode="numeric"
           min={10}
           max={120}
           value={age}
           onChange={(e) => setAge(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && canProceed) handleSubmit(); }}
           placeholder="25"
-          className="w-28 text-center bg-transparent border-b py-3 text-3xl font-[family-name:var(--font-mono)] font-light outline-none transition-colors duration-300 focus:border-white/40"
+          className="w-28 text-center bg-transparent border-b py-3 text-3xl font-[family-name:var(--font-mono)] font-light outline-none transition-all duration-300 focus:shadow-[0_4px_16px_rgba(255,20,20,0.1)] placeholder:text-white/15"
           style={{
             color: "rgba(255,255,255,0.85)",
-            borderColor: "rgba(255,255,255,0.15)",
+            borderColor: age ? "rgba(255,40,40,0.3)" : "rgba(255,255,255,0.15)",
           }}
         />
+        {/* Average lifespan hint */}
+        {age && Number(age) >= 10 && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-[9px] mt-1"
+            style={{ color: "rgba(255,60,60,0.2)" }}
+          >
+            平均余命から逆算します
+          </motion.p>
+        )}
       </motion.div>
 
-      {/* Submit */}
+      {/* Submit — red tinted */}
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: canProceed ? 1 : 0.4 }}
@@ -112,8 +127,9 @@ export default function BasicInfoScreen({ onSubmit }: Props) {
         disabled={!canProceed}
         className="px-12 py-3.5 border transition-all duration-300 cursor-pointer disabled:cursor-default active:scale-95"
         style={{
-          borderColor: canProceed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.08)",
+          borderColor: canProceed ? "rgba(255,40,40,0.3)" : "rgba(255,255,255,0.08)",
           borderRadius: "2px",
+          boxShadow: canProceed ? "0 0 16px rgba(255,20,20,0.06)" : "none",
         }}
       >
         <span

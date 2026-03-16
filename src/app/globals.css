@@ -4,6 +4,9 @@
   --bg-base: #0a0a0a;
   --text-primary: #ffffff;
   --text-secondary: #555555;
+  --death-red: rgba(255, 20, 20, 1);
+  --death-red-dim: rgba(255, 20, 20, 0.4);
+  --death-red-glow: rgba(255, 20, 20, 0.15);
 }
 
 html, body {
@@ -15,15 +18,37 @@ html, body {
 }
 
 ::selection {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 30, 30, 0.25);
 }
 
-/* Sleep slider */
+/* Vignette overlay — edges fade to black */
+.vignette::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
+}
+
+/* Film grain noise overlay */
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+}
+
+/* Sleep slider — death-red themed */
 .sleep-slider {
   -webkit-appearance: none;
   appearance: none;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 3px;
+  background: linear-gradient(90deg, rgba(255,30,30,0.3), rgba(255,255,255,0.08), rgba(255,30,30,0.3));
   outline: none;
   border-radius: 2px;
 }
@@ -31,28 +56,80 @@ html, body {
 .sleep-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.6);
+  background: radial-gradient(circle, rgba(255,40,40,0.9) 0%, rgba(180,20,20,0.7) 100%);
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
-  transition: background 0.2s;
+  border: 1px solid rgba(255,60,60,0.3);
+  box-shadow: 0 0 12px rgba(255,20,20,0.3), 0 0 4px rgba(255,20,20,0.5);
+  transition: all 0.2s;
 }
 
 .sleep-slider::-webkit-slider-thumb:hover {
-  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 20px rgba(255,20,20,0.5), 0 0 6px rgba(255,20,20,0.7);
+  transform: scale(1.1);
 }
 
 .sleep-slider::-moz-range-thumb {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.6);
+  background: radial-gradient(circle, rgba(255,40,40,0.9) 0%, rgba(180,20,20,0.7) 100%);
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255,60,60,0.3);
+  box-shadow: 0 0 12px rgba(255,20,20,0.3), 0 0 4px rgba(255,20,20,0.5);
+}
+
+/* Scale button death gradient (applied via data-danger attribute) */
+.scale-btn {
+  transition: all 0.2s ease;
+}
+.scale-btn:hover {
+  border-color: rgba(255,60,60,0.3) !important;
+  box-shadow: 0 0 8px rgba(255,20,20,0.1);
+}
+
+/* Heartbeat pulse animation */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  12% { transform: scale(1.05); }
+  18% { transform: scale(0.99); }
+  26% { transform: scale(1.025); }
+  34% { transform: scale(1); }
+  70% { transform: scale(1); }
+  74% { transform: scale(1.01); }
+}
+.heartbeat {
+  animation: heartbeat 2s ease-in-out infinite;
+}
+
+/* EKG line animation */
+@keyframes ekg-pulse {
+  0% { clip-path: inset(0 100% 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+.ekg-line {
+  animation: ekg-pulse 2s linear infinite;
+}
+
+/* Red flash on screen transition */
+@keyframes red-flash {
+  0% { opacity: 0.3; }
+  100% { opacity: 0; }
+}
+.red-flash {
+  animation: red-flash 0.8s ease-out forwards;
+}
+
+/* Flicker effect for countdown last digit */
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+  75% { opacity: 0.95; }
+}
+.countdown-flicker {
+  animation: flicker 1s ease-in-out infinite;
 }
 
 /* Number input arrows hidden */
@@ -68,4 +145,34 @@ input[type="number"] {
 /* Tabular nums for countdown */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 20, 20, 0.2);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 20, 20, 0.35);
+}
+
+/* Global focus-visible */
+:focus-visible {
+  outline: 2px solid rgba(255, 80, 80, 0.5);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
