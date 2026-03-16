@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --bg-base: #0a0a0a;
+  --text-primary: #ffffff;
+  --text-secondary: #555555;
+}
+
+html, body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Sleep slider */
+.sleep-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  border-radius: 2px;
+}
+
+.sleep-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+  transition: background 0.2s;
+}
+
+.sleep-slider::-webkit-slider-thumb:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.sleep-slider::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+}
+
+/* Number input arrows hidden */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Tabular nums for countdown */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
