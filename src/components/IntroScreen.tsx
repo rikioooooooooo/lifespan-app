@@ -15,7 +15,7 @@ export default function IntroScreen({ onStart }: Props) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.8 }}
-      className="flex flex-col items-center justify-center min-h-screen px-6"
+      className="flex flex-col items-center justify-center h-dvh px-6 overflow-hidden"
     >
       {/* Kosukuma with red shadow */}
       <motion.div

@@ -91,8 +91,12 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
         advanceTimeoutRef.current = setTimeout(() => {
           setCurrentIndex((i) => Math.min(i + 1, total - 1));
           transitioning.current = false;
-        }, 400);
+        }, 280);
+        // Safety: force-unlock after 1s in case animation gets stuck
+        setTimeout(() => { transitioning.current = false; }, 1000);
       } else {
+        // Q36 — trigger result transition
+        transitioning.current = false;
         onComplete(newAnswers);
       }
     },
@@ -116,9 +120,9 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
   }, [handleAnswer, sleepValue]);
 
   const variants = {
-    enter: (dir: number) => ({ x: dir > 0 ? 50 : -50, opacity: 0 }),
-    center: { x: 0, opacity: 1 },
-    exit: (dir: number) => ({ x: dir > 0 ? -50 : 50, opacity: 0 }),
+    enter: (dir: number) => ({ x: dir > 0 ? 50 : -50, opacity: 0, pointerEvents: "none" as const }),
+    center: { x: 0, opacity: 1, pointerEvents: "auto" as const },
+    exit: (dir: number) => ({ x: dir > 0 ? -50 : 50, opacity: 0, pointerEvents: "none" as const }),
   };
 
   // Progress bar color shifts from white to red as you approach the end
@@ -130,7 +134,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col min-h-screen px-5 pb-8"
+      className="flex flex-col h-dvh px-5 pb-8 overflow-hidden"
     >
 
       {/* Progress bar — fades from white to red */}
@@ -205,7 +209,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.25, ease: "easeInOut" }}
+            transition={{ duration: 0.18, ease: "easeInOut" }}
             onAnimationComplete={() => { transitioning.current = false; }}
             className="w-full max-w-sm text-center"
           >

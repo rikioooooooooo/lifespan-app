@@ -26,7 +26,7 @@ export default function BasicInfoScreen({ onSubmit }: Props) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6 }}
-      className="flex flex-col items-center justify-center min-h-screen px-6"
+      className="flex flex-col items-center justify-center h-dvh px-6 overflow-hidden"
     >
       {/* Kosukuma */}
       <motion.div

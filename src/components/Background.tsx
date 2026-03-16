@@ -22,10 +22,15 @@ let whiteoutActive = false;
 let whiteoutProgress = 0; // 0→1 over ~3 seconds
 let whiteoutCallback: (() => void) | null = null;
 
+// Function to restart the rAF loop (set by component)
+let restartLoop: (() => void) | null = null;
+
 export function triggerWhiteout(onComplete: () => void) {
   whiteoutActive = true;
   whiteoutProgress = 0;
   whiteoutCallback = onComplete;
+  // Ensure animation loop is running (it may have been stopped)
+  if (restartLoop) restartLoop();
 }
 
 let whiteoutElement: HTMLDivElement | null = null;
@@ -707,6 +712,7 @@ export default function Background() {
     const startLoop = () => {
       if (running) return;
       running = true;
+      lastLoopTime = 0;
       animRef.current = requestAnimationFrame(loop);
     };
 
@@ -714,6 +720,9 @@ export default function Background() {
       running = false;
       cancelAnimationFrame(animRef.current);
     };
+
+    // Expose startLoop so triggerWhiteout can restart the loop
+    restartLoop = startLoop;
 
     const handleVisibility = () => {
       if (document.hidden) {
@@ -823,6 +832,7 @@ export default function Background() {
 
     return () => {
       stopLoop();
+      restartLoop = null;
       whiteoutElement = null;
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handleMouse);

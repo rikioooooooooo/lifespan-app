@@ -52,11 +52,11 @@ export default function Home() {
 
   return (
     <main
-      className={`relative min-h-screen overflow-hidden ${screen === "result" ? "" : "vignette grain"}`}
+      className={`relative h-dvh ${screen === "result" ? "overflow-y-auto" : "overflow-hidden vignette grain"}`}
       style={{ backgroundColor: screen === "result" ? "#ffffff" : undefined }}
     >
       <Background />
-      <div className="relative z-10 min-h-screen">
+      <div className={`relative z-10 ${screen === "result" ? "min-h-dvh" : "h-dvh overflow-hidden"}`}>
         <AnimatePresence mode="wait">
           {screen === "intro" && <IntroScreen key="intro" onStart={handleStart} />}
           {screen === "basicInfo" && <BasicInfoScreen key="basic" onSubmit={handleBasicInfo} />}
