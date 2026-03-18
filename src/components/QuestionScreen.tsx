@@ -333,10 +333,10 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                 {/* Sleep quality hint */}
                 <p className="text-[9px]" style={{
                   color: sleepValue < 5 || sleepValue > 10
-                    ? "rgba(255,60,60,0.3)"
+                    ? "rgba(255,60,60,0.7)"
                     : sleepValue >= 7 && sleepValue <= 8
-                      ? "rgba(130,220,180,0.25)"
-                      : "rgba(255,255,255,0.15)",
+                      ? "rgba(130,220,180,0.6)"
+                      : "rgba(255,255,255,0.4)",
                 }}>
                   {sleepValue < 5 ? "寿命が縮む睡眠時間" :
                    sleepValue > 10 ? "過度な睡眠もリスクに" :
@@ -355,8 +355,8 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                 />
 
                 <div className="flex justify-between w-64">
-                  <span className="text-[10px]" style={{ color: "rgba(255,60,60,0.2)" }}>3h</span>
-                  <span className="text-[10px]" style={{ color: "rgba(255,60,60,0.2)" }}>12h</span>
+                  <span className="text-[10px]" style={{ color: "rgba(255,60,60,0.5)" }}>3h</span>
+                  <span className="text-[10px]" style={{ color: "rgba(255,60,60,0.5)" }}>12h</span>
                 </div>
 
                 <button
