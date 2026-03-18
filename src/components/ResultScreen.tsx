@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LifespanResult } from "@/lib/calculator";
-import { formatSeconds } from "@/lib/calculator";
 import CategoryBreakdown from "@/components/CategoryBreakdown";
 import KosukumaIllustration from "./KosukumaIllustration";
 
@@ -43,16 +42,6 @@ function CountdownTimer({
     return () => clearInterval(interval);
   }, []);
 
-  const { years, days, hours, minutes, seconds } = formatSeconds(currentSeconds);
-
-  const units = [
-    { value: years, label: "年" },
-    { value: days, label: "日" },
-    { value: hours, label: "時" },
-    { value: minutes, label: "分" },
-    { value: seconds, label: "秒" },
-  ];
-
   return (
     <div className="text-center">
       <p
@@ -61,30 +50,24 @@ function CountdownTimer({
       >
         {label}
       </p>
-      <div className="flex items-baseline justify-center gap-1">
-        {units.map((u, i) => (
-          <div key={i} className="flex items-baseline">
-            <motion.span
-              key={`${u.label}-${u.value}`}
-              initial={u.label === "秒" ? { opacity: 0.7 } : false}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.15 }}
-              className={`font-[family-name:var(--font-mono)] font-light tabular-nums ${
-                large ? "text-[clamp(1.8rem,5vw,4rem)]" : "text-[clamp(1.5rem,4vw,3.2rem)]"
-              } ${u.label === "秒" ? "countdown-flicker" : ""}`}
-              style={{ color: RED }}
-            >
-              {String(u.value).padStart(u.label === "年" ? 1 : 2, "0")}
-            </motion.span>
-            <span
-              className="text-[clamp(10px,1.1vw,14px)] ml-0.5 mr-2"
-              style={{ color: BLACK }}
-            >
-              {u.label}
-            </span>
-          </div>
-        ))}
-      </div>
+      <motion.span
+        key={currentSeconds}
+        initial={{ opacity: 0.7 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.15 }}
+        className={`font-[family-name:var(--font-mono)] font-light tabular-nums countdown-flicker ${
+          large ? "text-[clamp(2rem,6vw,4.5rem)]" : "text-[clamp(1.6rem,5vw,3.5rem)]"
+        }`}
+        style={{ color: RED }}
+      >
+        {currentSeconds.toLocaleString()}
+      </motion.span>
+      <p
+        className="text-[clamp(10px,1.1vw,14px)] mt-2 tracking-[0.2em] font-[family-name:var(--font-mono)]"
+        style={{ color: BLACK_SUB }}
+      >
+        SECONDS
+      </p>
     </div>
   );
 }
@@ -450,7 +433,7 @@ export default function ResultScreen({ result, onRestart }: Props) {
             >
               <button
                 onClick={() => {
-                  const text = `あと${formatSeconds(result.remainingSeconds).years}年${formatSeconds(result.remainingSeconds).days}日。\n推定寿命: ${result.estimatedLifespan}歳\n\nあと何秒、生きられる？`;
+                  const text = `あと${result.remainingSeconds.toLocaleString()}秒。\n推定寿命: ${result.estimatedLifespan}歳\n\nあと何秒、生きられる？`;
                   if (navigator.share) {
                     navigator.share({ title: "あと何秒、生きられる？", text });
                   } else {
