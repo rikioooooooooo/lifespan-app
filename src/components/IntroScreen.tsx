@@ -58,7 +58,7 @@ export default function IntroScreen({ onStart }: Props) {
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2, duration: 1 }}
         className="mt-6 text-sm tracking-[0.15em] text-center leading-relaxed"
-        style={{ color: "rgba(255,60,60,0.25)" }}
+        style={{ color: "rgba(255,80,80,0.5)" }}
       >
         36の問いから、失われていく時間を可視化する。
       </motion.p>
@@ -72,12 +72,14 @@ export default function IntroScreen({ onStart }: Props) {
         className="mt-12 group relative cursor-pointer heartbeat"
       >
         <div
-          className="px-14 py-4 border transition-all duration-500 group-hover:bg-red-900/10 group-hover:border-red-500/30 group-active:scale-95"
+          className="px-14 py-4 border transition-all duration-500 group-hover:bg-red-900/10 group-hover:border-red-500/40 group-active:scale-95"
           style={{
-            borderColor: "rgba(255,40,40,0.2)",
+            borderColor: "rgba(255,40,40,0.25)",
             borderRadius: "2px",
             boxShadow: "0 0 20px rgba(255,20,20,0.05)",
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 0 24px rgba(255,20,20,0.25), 0 0 8px rgba(255,40,40,0.15)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 0 20px rgba(255,20,20,0.05)"; }}
         >
           <span
             className="font-[family-name:var(--font-mono)] text-sm tracking-[0.3em] uppercase"
@@ -95,7 +97,7 @@ export default function IntroScreen({ onStart }: Props) {
         transition={{ delay: 2.2, duration: 1 }}
         className="absolute bottom-8 text-center"
       >
-        <p className="text-[10px] tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.15)" }}>
+        <p className="text-[10px] tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.45)" }}>
           所要時間：約3分 ─ 全36問
         </p>
       </motion.div>

@@ -17,7 +17,7 @@ const BUTTON_SIZE = 40;
 
 // Color gradient for scale buttons: maps position to color based on question direction
 function getScaleColor(index: number, dir: 1 | -1, isSelected: boolean) {
-  if (!isSelected) return { border: "rgba(255,255,255,0.12)", bg: "transparent", dot: "rgba(255,255,255,0.5)" };
+  if (!isSelected) return { border: "rgba(255,255,255,0.3)", bg: "transparent", dot: "rgba(255,255,255,0.7)" };
 
   // For dir=1 (positive): left=bad(red), right=good(green-white)
   // For dir=-1 (negative): left=good, right=bad(red)
@@ -137,14 +137,27 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
       className="flex flex-col h-dvh px-5 pb-8 overflow-hidden"
     >
 
-      {/* Progress bar — fades from white to red */}
-      <div className="fixed top-0 left-0 right-0 z-20 h-[3px]" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
-        <motion.div
-          className="h-full"
-          style={{ backgroundColor: progressColor }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        />
+      {/* Progress gauge — fills up as questions are answered */}
+      <div className="fixed top-0 left-0 right-0 z-20">
+        <div className="h-[6px] w-full" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+          <motion.div
+            className="h-full"
+            style={{
+              backgroundColor: progressColor,
+              boxShadow: `0 0 8px ${progressColor}`,
+            }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          />
+        </div>
+        <div className="flex justify-end px-3 mt-1">
+          <span
+            className="font-[family-name:var(--font-mono)] text-[10px] tracking-[0.1em]"
+            style={{ color: "rgba(255,255,255,0.5)" }}
+          >
+            {Math.round(progress)}%
+          </span>
+        </div>
       </div>
 
       {/* Header */}
@@ -162,7 +175,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
         ) : <div />}
         <span
           className="font-[family-name:var(--font-mono)] text-[11px] tracking-[0.15em]"
-          style={{ color: "rgba(255,255,255,0.2)" }}
+          style={{ color: "rgba(255,255,255,0.55)" }}
         >
           {String(safeIndex + 1).padStart(2, "0")} / {total}
         </span>
@@ -182,7 +195,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
           </span>
           <span
             className="ml-2 font-[family-name:var(--font-mono)] text-xs tracking-[0.25em] uppercase align-middle"
-            style={{ color: "rgba(255,255,255,0.35)" }}
+            style={{ color: "rgba(255,255,255,0.6)" }}
           >
             {question.category}
           </span>
@@ -228,12 +241,12 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                 {/* Scale labels */}
                 <div className="flex justify-between w-full px-3">
                   <span className="text-[10px] max-w-[70px] text-left" style={{
-                    color: "rgba(255,255,255,0.2)",
+                    color: "rgba(255,255,255,0.55)",
                   }}>
                     {question.lowLabel}
                   </span>
                   <span className="text-[10px] max-w-[70px] text-right" style={{
-                    color: "rgba(255,255,255,0.2)",
+                    color: "rgba(255,255,255,0.55)",
                   }}>
                     {question.highLabel}
                   </span>
@@ -253,7 +266,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                         style={{
                           width: BUTTON_SIZE,
                           height: BUTTON_SIZE,
-                          borderColor: isSelected ? colors.border : "rgba(255,255,255,0.12)",
+                          borderColor: isSelected ? colors.border : "rgba(255,255,255,0.3)",
                           backgroundColor: isSelected ? colors.bg : "transparent",
                           boxShadow: isSelected ? `0 0 10px ${colors.bg}` : "none",
                         }}
@@ -283,7 +296,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                       style={{
                         width: BUTTON_SIZE,
                         fontSize: 8,
-                        color: answers[question.id] === i ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.08)",
+                        color: answers[question.id] === i ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.35)",
                       }}
                     >
                       {i + 1}
@@ -312,7 +325,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                   >
                     {sleepValue}
                   </motion.span>
-                  <span className="text-sm mb-1" style={{ color: "rgba(255,255,255,0.3)" }}>
+                  <span className="text-sm mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>
                     時間
                   </span>
                 </div>
@@ -350,14 +363,16 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                   onClick={handleSleepSubmit}
                   className="mt-2 px-10 py-3 border transition-all duration-300 cursor-pointer hover:bg-red-900/10 active:scale-95"
                   style={{
-                    borderColor: "rgba(255,40,40,0.2)",
+                    borderColor: "rgba(255,40,40,0.25)",
                     borderRadius: "2px",
                     boxShadow: "0 0 12px rgba(255,20,20,0.04)",
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 0 20px rgba(255,20,20,0.25), 0 0 6px rgba(255,40,40,0.15)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 0 12px rgba(255,20,20,0.04)"; }}
                 >
                   <span
                     className="font-[family-name:var(--font-mono)] text-xs tracking-[0.3em] uppercase"
-                    style={{ color: "rgba(255,255,255,0.5)" }}
+                    style={{ color: "rgba(255,255,255,0.75)" }}
                   >
                     Next
                   </span>

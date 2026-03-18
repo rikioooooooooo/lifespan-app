@@ -2,7 +2,7 @@ import { questions, categories, type Category } from "@/data/questions";
 
 export interface BasicInfo {
   age: number;
-  gender: "male" | "female";
+  gender: "male" | "female" | "other";
 }
 
 export interface Answers {
@@ -26,7 +26,7 @@ export interface LifespanResult {
   categories: CategoryResult[];
   sleepHours: number;
   age: number;
-  gender: "male" | "female";
+  gender: "male" | "female" | "other";
   remainingSeconds: number;
   remainingHealthySeconds: number;
   remainingAwakeSeconds: number;
@@ -53,7 +53,7 @@ function getSleepScore(hours: number): number {
 const SCALE_MAX = 6; // 0-6 scale (7 steps)
 
 export function calculate(info: BasicInfo, answers: Answers): LifespanResult {
-  const baseLifespan = info.gender === "male" ? 81.5 : 87.6;
+  const baseLifespan = info.gender === "male" ? 81.5 : info.gender === "female" ? 87.6 : 84.5;
   const ageCorrection = getAgeCorrection(info.age);
 
   const categoryResults: CategoryResult[] = categories.map((cat) => {
