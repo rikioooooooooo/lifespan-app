@@ -11,66 +11,13 @@ interface Props {
   onRestart: () => void;
 }
 
-type RevealStage = "loading" | "lifespan" | "healthy" | "awake" | "detail";
+type RevealStage = "loading" | "countdown" | "detail";
+type DropPhase = "reveal" | "lifespan" | "dropping-healthy" | "healthy" | "dropping-awake" | "awake" | "done";
 type CountdownMode = "lifespan" | "healthy" | "awake";
 
 const BLACK = "#000000";
 const RED = "#dc1414";
 const BLACK_SUB = "rgba(0,0,0,0.7)";
-
-function CountdownTimer({
-  seconds: initialSeconds,
-  label,
-  large = false,
-}: {
-  seconds: number;
-  label: string;
-  large?: boolean;
-}) {
-  const [currentSeconds, setCurrentSeconds] = useState(initialSeconds);
-  const endTimeRef = useRef(Date.now() + initialSeconds * 1000);
-
-  useEffect(() => {
-    setCurrentSeconds(initialSeconds);
-    endTimeRef.current = Date.now() + initialSeconds * 1000;
-  }, [initialSeconds]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSeconds(Math.max(0, Math.floor((endTimeRef.current - Date.now()) / 1000)));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="text-center">
-      <p
-        className="text-[clamp(10px,1.2vw,14px)] tracking-[0.25em] uppercase mb-4 font-[family-name:var(--font-mono)]"
-        style={{ color: BLACK_SUB }}
-      >
-        {label}
-      </p>
-      <motion.span
-        key={currentSeconds}
-        initial={{ opacity: 0.7 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.15 }}
-        className={`font-[family-name:var(--font-mono)] font-light tabular-nums countdown-flicker ${
-          large ? "text-[clamp(2rem,6vw,4.5rem)]" : "text-[clamp(1.6rem,5vw,3.5rem)]"
-        }`}
-        style={{ color: RED }}
-      >
-        {currentSeconds.toLocaleString()}
-      </motion.span>
-      <p
-        className="text-[clamp(10px,1.1vw,14px)] mt-2 tracking-[0.2em] font-[family-name:var(--font-mono)]"
-        style={{ color: BLACK_SUB }}
-      >
-        SECONDS
-      </p>
-    </div>
-  );
-}
 
 // EKG SVG path
 function EKGLine() {
@@ -93,20 +40,249 @@ function EKGLine() {
   );
 }
 
+// Animated counter that drops from one value to another
+function useDropCounter(result: LifespanResult) {
+  const [displaySeconds, setDisplaySeconds] = useState(0);
+  const [phase, setPhase] = useState<DropPhase>("reveal");
+  const [label, setLabel] = useState("あなたの推定寿命");
+  const [subLabel, setSubLabel] = useState("");
+  const [age, setAge] = useState(0);
+  const displayRef = useRef(0);
+  const tickTimer = useRef<ReturnType<typeof setInterval>>(undefined);
+  const animFrame = useRef<number>(undefined);
+  const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const schedule = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(fn, ms);
+    timeouts.current.push(id);
+    return id;
+  }, []);
+
+  const startTicking = useCallback(() => {
+    if (tickTimer.current) clearInterval(tickTimer.current);
+    tickTimer.current = setInterval(() => {
+      displayRef.current = Math.max(0, displayRef.current - 1);
+      setDisplaySeconds(displayRef.current);
+    }, 1000);
+  }, []);
+
+  const stopTicking = useCallback(() => {
+    if (tickTimer.current) clearInterval(tickTimer.current);
+  }, []);
+
+  const animateTo = useCallback((target: number, duration: number, onDone: () => void) => {
+    const from = displayRef.current;
+    const start = performance.now();
+
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      // easeInOutCubic — starts slow, accelerates hard, slows at end
+      const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+      const val = Math.round(from + (target - from) * eased);
+      displayRef.current = val;
+      setDisplaySeconds(val);
+
+      if (p < 1) {
+        animFrame.current = requestAnimationFrame(tick);
+      } else {
+        displayRef.current = target;
+        setDisplaySeconds(target);
+        onDone();
+      }
+    };
+    animFrame.current = requestAnimationFrame(tick);
+  }, []);
+
+  useEffect(() => {
+    // Phase 0: Show age for 2 seconds
+    setAge(result.estimatedLifespan);
+    setLabel("あなたの推定寿命");
+    setPhase("reveal");
+
+    // Phase 1: Transition to seconds counter (after 2s reveal)
+    schedule(() => {
+      setPhase("lifespan");
+      displayRef.current = result.remainingSeconds;
+      setDisplaySeconds(result.remainingSeconds);
+      setSubLabel(`${result.estimatedLifespan}歳`);
+      startTicking();
+
+      // Phase 2: Drop to healthy lifespan (1秒長めに見せる)
+      schedule(() => {
+        stopTicking();
+        setPhase("dropping-healthy");
+        setLabel("健康に動ける時間は、もっと短い");
+        setSubLabel("");
+        animateTo(result.remainingHealthySeconds, 2500, () => {
+          setPhase("healthy");
+          setAge(result.healthyLifespan);
+          setSubLabel(`健康寿命 ${result.healthyLifespan}歳`);
+          startTicking();
+
+          // Phase 3: Drop to awake lifespan
+          schedule(() => {
+            stopTicking();
+            setPhase("dropping-awake");
+            setLabel("睡眠を除くと、さらに減る");
+            setSubLabel("");
+            animateTo(result.remainingAwakeSeconds, 2500, () => {
+              setPhase("awake");
+              setAge(result.awakeLifespan);
+              setSubLabel(`起きている時間のみ`);
+              startTicking();
+
+              schedule(() => {
+                stopTicking();
+                setPhase("done");
+              }, 2500);
+            });
+          }, 3000);
+        });
+      }, 4500);
+    }, 2000);
+
+    return () => {
+      timeouts.current.forEach(clearTimeout);
+      if (tickTimer.current) clearInterval(tickTimer.current);
+      if (animFrame.current) cancelAnimationFrame(animFrame.current);
+    };
+  }, []);
+
+  const isDropping = phase === "dropping-healthy" || phase === "dropping-awake";
+
+  return { displaySeconds, phase, label, subLabel, age, isDropping };
+}
+
+function CountdownTimer({
+  seconds: targetSeconds,
+  label,
+  large = false,
+}: {
+  seconds: number;
+  label: string;
+  large?: boolean;
+}) {
+  const [displaySeconds, setDisplaySeconds] = useState(targetSeconds);
+  const displayRef = useRef(targetSeconds);
+  const endTimeRef = useRef(Date.now() + targetSeconds * 1000);
+  const animFrame = useRef<number>(undefined);
+  const tickTimer = useRef<ReturnType<typeof setInterval>>(undefined);
+  const isAnimating = useRef(false);
+  const [isDropping, setIsDropping] = useState(false);
+
+  // When target changes (tab switch), animate to the new value
+  const prevTarget = useRef(targetSeconds);
+  useEffect(() => {
+    if (prevTarget.current === targetSeconds) return;
+    const from = displayRef.current;
+    const to = targetSeconds;
+    prevTarget.current = targetSeconds;
+
+    // Stop normal ticking during animation
+    if (tickTimer.current) clearInterval(tickTimer.current);
+    if (animFrame.current) cancelAnimationFrame(animFrame.current);
+    isAnimating.current = true;
+    setIsDropping(true);
+
+    const duration = 1200;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+      const v = Math.round(from + (to - from) * eased);
+      displayRef.current = v;
+      setDisplaySeconds(v);
+
+      if (p < 1) {
+        animFrame.current = requestAnimationFrame(tick);
+      } else {
+        displayRef.current = to;
+        setDisplaySeconds(to);
+        isAnimating.current = false;
+        setIsDropping(false);
+        // Resume normal ticking from new target
+        endTimeRef.current = Date.now() + to * 1000;
+        tickTimer.current = setInterval(() => {
+          if (!isAnimating.current) {
+            displayRef.current = Math.max(0, Math.floor((endTimeRef.current - Date.now()) / 1000));
+            setDisplaySeconds(displayRef.current);
+          }
+        }, 1000);
+      }
+    };
+    animFrame.current = requestAnimationFrame(tick);
+  }, [targetSeconds]);
+
+  // Normal 1s ticking
+  useEffect(() => {
+    endTimeRef.current = Date.now() + targetSeconds * 1000;
+    displayRef.current = targetSeconds;
+    setDisplaySeconds(targetSeconds);
+    tickTimer.current = setInterval(() => {
+      if (!isAnimating.current) {
+        displayRef.current = Math.max(0, Math.floor((endTimeRef.current - Date.now()) / 1000));
+        setDisplaySeconds(displayRef.current);
+      }
+    }, 1000);
+    return () => {
+      if (tickTimer.current) clearInterval(tickTimer.current);
+      if (animFrame.current) cancelAnimationFrame(animFrame.current);
+    };
+  }, []);
+
+  return (
+    <div className="text-center">
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={label}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="text-[clamp(10px,1.2vw,14px)] tracking-[0.25em] uppercase mb-4 font-[family-name:var(--font-mono)]"
+          style={{ color: BLACK_SUB }}
+        >
+          {label}
+        </motion.p>
+      </AnimatePresence>
+      <span
+        className={`font-[family-name:var(--font-mono)] font-light tabular-nums ${
+          isDropping ? "drop-shake" : "countdown-flicker"
+        } ${
+          large ? "text-[clamp(2rem,6vw,4.5rem)]" : "text-[clamp(1.6rem,5vw,3.5rem)]"
+        }`}
+        style={{ color: RED }}
+      >
+        {displaySeconds.toLocaleString()}
+      </span>
+      <p
+        className="text-[clamp(10px,1.1vw,14px)] mt-2 tracking-[0.2em] font-[family-name:var(--font-mono)]"
+        style={{ color: BLACK_SUB }}
+      >
+        SECONDS
+      </p>
+    </div>
+  );
+}
+
 export default function ResultScreen({ result, onRestart }: Props) {
   const [stage, setStage] = useState<RevealStage>("loading");
   const [countdownMode, setCountdownMode] = useState<CountdownMode>("lifespan");
   const [copied, setCopied] = useState(false);
+  const drop = useDropCounter(result);
 
   useEffect(() => {
-    const timers = [
-      setTimeout(() => setStage("lifespan"), 3000),
-      setTimeout(() => setStage("healthy"), 8000),
-      setTimeout(() => setStage("awake"), 13000),
-      setTimeout(() => setStage("detail"), 18000),
-    ];
-    return () => timers.forEach(clearTimeout);
+    const t = setTimeout(() => setStage("countdown"), 3000);
+    return () => clearTimeout(t);
   }, []);
+
+  // Auto-transition to detail when drop sequence finishes
+  useEffect(() => {
+    if (drop.phase === "done" && stage === "countdown") {
+      const t = setTimeout(() => setStage("detail"), 500);
+      return () => clearTimeout(t);
+    }
+  }, [drop.phase, stage]);
 
   const skipToDetail = useCallback(() => {
     setStage("detail");
@@ -185,129 +361,105 @@ export default function ResultScreen({ result, onRestart }: Props) {
           </motion.div>
         )}
 
-        {/* Stage 1: Estimated Lifespan */}
-        {stage === "lifespan" && (
+        {/* Countdown drop sequence */}
+        {stage === "countdown" && (
           <motion.div
-            key="lifespan"
+            key="countdown"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.2 }}
+            transition={{ duration: 0.8 }}
             className="flex-1 flex flex-col items-center justify-center"
           >
-            <motion.p
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="text-[clamp(14px,1.8vw,20px)] mb-10 tracking-wide"
-              style={{ color: BLACK }}
-            >
-              あなたの推定寿命
-            </motion.p>
-            <motion.p
-              initial={{ opacity: 0, scale: 0.5, filter: "blur(10px)" }}
-              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-              transition={{ delay: 1, duration: 1.5, ease: "easeOut" }}
-              className="font-[family-name:var(--font-mono)] text-[clamp(4rem,14vw,9rem)] font-light"
-              style={{ color: RED }}
-            >
-              {result.estimatedLifespan}
-            </motion.p>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2 }}
-              className="mt-3 text-[clamp(18px,2.5vw,28px)]"
-              style={{ color: RED }}
-            >
-              歳
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 2.8, duration: 0.8 }}
-              className="mt-12"
-            >
-              <CountdownTimer seconds={result.remainingSeconds} label="残り時間" />
-            </motion.div>
-          </motion.div>
-        )}
+            {/* Label */}
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={drop.label}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.5 }}
+                className="text-[clamp(13px,1.8vw,18px)] mb-6 tracking-wide text-center"
+                style={{ color: BLACK }}
+              >
+                {drop.label}
+              </motion.p>
+            </AnimatePresence>
 
-        {/* Stage 2: Healthy Lifespan */}
-        {stage === "healthy" && (
-          <motion.div
-            key="healthy"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.2 }}
-            className="flex-1 flex flex-col items-center justify-center"
-          >
-            <motion.p
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="text-[clamp(14px,1.8vw,20px)] mb-10 tracking-wide"
-              style={{ color: BLACK }}
-            >
-              健康寿命
-            </motion.p>
-            <motion.p
-              initial={{ opacity: 0, scale: 0.5, filter: "blur(10px)" }}
-              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-              transition={{ delay: 1, duration: 1.5, ease: "easeOut" }}
-              className="font-[family-name:var(--font-mono)] text-[clamp(4rem,14vw,9rem)] font-light"
-              style={{ color: RED }}
-            >
-              {result.healthyLifespan}
-            </motion.p>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2 }}
-              className="mt-3 text-[clamp(18px,2.5vw,28px)]"
-              style={{ color: RED }}
-            >
-              歳
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 2.8, duration: 0.8 }}
-              className="mt-12"
-            >
-              <CountdownTimer seconds={result.remainingHealthySeconds} label="健康でいられる時間" />
-            </motion.div>
-          </motion.div>
-        )}
+            <AnimatePresence mode="wait">
+              {/* Phase 0: Big age reveal */}
+              {drop.phase === "reveal" && (
+                <motion.div
+                  key="reveal"
+                  initial={{ opacity: 0, scale: 0.5, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+                  className="text-center"
+                >
+                  <span
+                    className="font-[family-name:var(--font-mono)] font-light text-[clamp(4rem,14vw,9rem)]"
+                    style={{ color: RED }}
+                  >
+                    {result.estimatedLifespan}
+                  </span>
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                    className="text-[clamp(18px,2.5vw,28px)] ml-1"
+                    style={{ color: RED }}
+                  >
+                    歳
+                  </motion.span>
+                </motion.div>
+              )}
 
-        {/* Stage 3: Awake Lifespan */}
-        {stage === "awake" && (
-          <motion.div
-            key="awake"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.2 }}
-            className="flex-1 flex flex-col items-center justify-center"
-          >
-            <motion.p
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="text-[clamp(14px,1.8vw,20px)] mb-10 tracking-wide"
-              style={{ color: BLACK }}
-            >
-              起きていられる時間
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1, duration: 1.2 }}
-              className="mt-4"
-            >
-              <CountdownTimer seconds={result.remainingAwakeSeconds} label="睡眠を除いた残り" large />
-            </motion.div>
+              {/* Phase 1+: Seconds counter that drops */}
+              {drop.phase !== "reveal" && (
+                <motion.div
+                  key="seconds"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="text-center"
+                >
+                  <span
+                    className={`font-[family-name:var(--font-mono)] font-light tabular-nums text-[clamp(2.2rem,7vw,5rem)] transition-all duration-150 ${
+                      drop.isDropping ? "drop-shake" : "countdown-flicker"
+                    }`}
+                    style={{ color: RED }}
+                  >
+                    {Math.max(0, drop.displaySeconds).toLocaleString()}
+                  </span>
+                  <p
+                    className="text-[clamp(10px,1.1vw,14px)] mt-2 tracking-[0.2em] font-[family-name:var(--font-mono)]"
+                    style={{ color: BLACK_SUB }}
+                  >
+                    SECONDS
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Sub label (age info) */}
+            <div className="h-8 mt-6 flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                {drop.subLabel && (
+                  <motion.p
+                    key={drop.subLabel}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="text-[clamp(11px,1.3vw,16px)] tracking-wide font-[family-name:var(--font-mono)]"
+                    style={{ color: BLACK_SUB }}
+                  >
+                    {drop.subLabel}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
           </motion.div>
         )}
 
@@ -370,24 +522,14 @@ export default function ResultScreen({ result, onRestart }: Props) {
               })}
             </div>
 
-            {/* Live countdown */}
+            {/* Live countdown — number animates on tab switch, no fade */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
               className="mb-14"
             >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={countdownMode}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <CountdownTimer seconds={countdownSeconds} label={countdownLabel} large />
-                </motion.div>
-              </AnimatePresence>
+              <CountdownTimer seconds={countdownSeconds} label={countdownLabel} large />
             </motion.div>
 
             {/* Category breakdown */}

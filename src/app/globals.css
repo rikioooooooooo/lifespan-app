@@ -180,6 +180,19 @@ input[type="number"] {
   outline-offset: 2px;
 }
 
+/* Drop shake — numbers trembling while dropping */
+@keyframes drop-shake {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-1.5px); }
+  30% { transform: translateX(1px); }
+  50% { transform: translateX(-0.5px); }
+  70% { transform: translateX(1.5px); }
+  90% { transform: translateX(-1px); }
+}
+.drop-shake {
+  animation: drop-shake 0.15s linear infinite;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

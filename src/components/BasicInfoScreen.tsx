@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import type { BasicInfo } from "@/lib/calculator";
-import KosukumaSvg from "./KosukumaSvg";
+import KosukumaAnimated from "./KosukumaAnimated";
 
 interface Props {
   onSubmit: (info: BasicInfo) => void;
@@ -35,7 +35,7 @@ export default function BasicInfoScreen({ onSubmit }: Props) {
         transition={{ delay: 0.1, duration: 0.5 }}
         className="mb-8"
       >
-        <KosukumaSvg size={56} mood={canProceed ? "happy" : "neutral"} />
+        <KosukumaAnimated size={56} animation={canProceed ? "dance" : "gorogoro"} />
       </motion.div>
 
       {/* Section label */}

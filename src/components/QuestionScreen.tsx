@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { questions, categories } from "@/data/questions";
 import type { BasicInfo, Answers } from "@/lib/calculator";
-import KosukumaSvg from "./KosukumaSvg";
+import KosukumaAnimated from "./KosukumaAnimated";
 import { setBackgroundProgress } from "./Background";
 
 interface Props {
@@ -65,18 +65,10 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
     return categories.find(c => c.id === question.category);
   }, [question.category]);
 
-  const kosukumaMood = useMemo(() => {
-    if (currentIndex === 0) return "neutral" as const;
-    const lastAnswer = answers[questions[currentIndex - 1]?.id];
-    if (lastAnswer === undefined) return "neutral" as const;
-    const lastQ = questions[currentIndex - 1];
-    if (lastQ.type === "sleep") return "neutral" as const;
-    const normalized = lastAnswer / (SCALE_STEPS - 1);
-    const effective = lastQ.dir === 1 ? normalized : 1 - normalized;
-    if (effective > 0.6) return "happy" as const;
-    if (effective < 0.3) return "thinking" as const;
-    return "neutral" as const;
-  }, [currentIndex, answers]);
+  const ANIM_POOL = ["dance", "gorogoro", "kaikai", "osirihurihuri", "utouto"] as const;
+  const kosukumaAnim = useMemo(() => {
+    return ANIM_POOL[currentIndex % ANIM_POOL.length];
+  }, [currentIndex]);
 
   const handleAnswer = useCallback(
     (value: number) => {
@@ -204,12 +196,12 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
         {/* Kosukuma */}
         <div className="flex justify-center mt-2 mb-6">
           <motion.div
-            key={kosukumaMood}
+            key={kosukumaAnim}
             initial={{ scale: 0.9, opacity: 0.5 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.3 }}
           >
-            <KosukumaSvg size={80} mood={kosukumaMood} />
+            <KosukumaAnimated size={80} animation={kosukumaAnim} />
           </motion.div>
         </div>
 

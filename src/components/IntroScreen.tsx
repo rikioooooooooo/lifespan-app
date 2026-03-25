@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import KosukumaIllustration from "./KosukumaIllustration";
+import KosukumaAnimated from "./KosukumaAnimated";
 import GlitchText from "./GlitchText";
 
 interface Props {
@@ -23,14 +23,9 @@ export default function IntroScreen({ onStart }: Props) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
         className="mb-6"
+        style={{ filter: "drop-shadow(0 8px 24px rgba(255,20,20,0.08))" }}
       >
-        <motion.div
-          animate={{ y: [0, -6, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          style={{ filter: "drop-shadow(0 8px 24px rgba(255,20,20,0.08))" }}
-        >
-          <KosukumaIllustration size={140} />
-        </motion.div>
+        <KosukumaAnimated size={140} animation="utouto" />
       </motion.div>
 
       {/* Title with glitch noise */}
