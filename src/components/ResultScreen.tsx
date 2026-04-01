@@ -575,8 +575,8 @@ export default function ResultScreen({ result, onRestart }: Props) {
             >
               <button
                 onClick={() => {
-                  const awakeYears = Math.round((result.awakeLifespan - result.age) * 10) / 10;
-                  const text = `あと${result.remainingAwakeSeconds.toLocaleString()}秒。\n起きていられる時間: あと${awakeYears}年\n\nあと何秒、生きられる？\n#寿命診断\nhttps://nagaikisitaiyone.kosukuma.com`;
+                  const remainingYears = Math.round((result.estimatedLifespan - result.age) * 10) / 10;
+                  const text = `わたしの残りの寿命\n残り、${result.remainingSeconds.toLocaleString()}秒（${remainingYears}年）\n\n寿命を診断したい人はコチラ↓\nhttps://nagaikisitaiyone.kosukuma.com\n\n#寿命診断`;
                   if (navigator.share) {
                     navigator.share({ title: "あと何秒、生きられる？", text });
                   } else {
