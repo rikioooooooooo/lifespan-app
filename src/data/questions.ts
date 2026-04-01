@@ -16,17 +16,17 @@ export type Category = "body" | "mind" | "habit" | "relation" | "work" | "enviro
 export interface CategoryDef {
   id: Category;
   label: string;
-  emoji: string;
+  icon: string;
   maxImpact: number;
 }
 
 export const categories: CategoryDef[] = [
-  { id: "body", label: "BODY", emoji: "🏃", maxImpact: 4.5 },
-  { id: "mind", label: "MIND", emoji: "🧠", maxImpact: 4 },
-  { id: "habit", label: "HABIT", emoji: "🔁", maxImpact: 6 },
-  { id: "relation", label: "RELATION", emoji: "🤝", maxImpact: 4 },
-  { id: "work", label: "WORK", emoji: "💼", maxImpact: 3.5 },
-  { id: "environment", label: "ENVIRONMENT", emoji: "🌿", maxImpact: 3.5 },
+  { id: "body", label: "BODY", icon: "/icons/body.png", maxImpact: 4.5 },
+  { id: "mind", label: "MIND", icon: "/icons/mind.png", maxImpact: 4 },
+  { id: "habit", label: "HABIT", icon: "/icons/habit.png", maxImpact: 6 },
+  { id: "relation", label: "RELATION", icon: "/icons/relation.png", maxImpact: 4 },
+  { id: "work", label: "WORK", icon: "/icons/work.png", maxImpact: 3.5 },
+  { id: "environment", label: "ENVIRONMENT", icon: "/icons/environment.png", maxImpact: 3.5 },
 ];
 
 export const questions: Question[] = [

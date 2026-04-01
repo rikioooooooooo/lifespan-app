@@ -146,7 +146,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
               transition={{ delay: gi * 0.08, duration: 0.5 }}
               className="flex flex-col items-center gap-2 mb-10 mt-4"
             >
-              <span className="text-lg">{group.category.emoji}</span>
+              <img src={group.category.icon} alt={group.category.label} className="w-6 h-6" style={{ imageRendering: "pixelated" }} />
               <span
                 className="font-[family-name:var(--font-mono)] text-[10px] tracking-[0.3em] uppercase"
                 style={{ color: "rgba(255,255,255,0.4)" }}
