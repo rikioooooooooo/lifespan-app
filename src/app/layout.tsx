@@ -17,6 +17,9 @@ const notoSansJP = Noto_Sans_JP({
 export const metadata: Metadata = {
   title: "あと何秒、生きられる？",
   description: "36の問いから、あなたの残り時間を算出する。",
+  icons: {
+    icon: "/favicon.svg",
+  },
   openGraph: {
     title: "あと何秒、生きられる？",
     description: "36の問いから、あなたの残り時間を算出する。",
