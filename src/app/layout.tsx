@@ -24,11 +24,21 @@ export const metadata: Metadata = {
     title: "あと何秒、生きられる？",
     description: "36の問いから、あなたの残り時間を算出する。",
     type: "website",
+    url: "https://nagaikisitaiyone.kosukuma.com",
+    images: [
+      {
+        url: "https://nagaikisitaiyone.kosukuma.com/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "あと何秒、生きられる？",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "あと何秒、生きられる？",
     description: "36の問いから、あなたの残り時間を算出する。",
+    images: ["https://nagaikisitaiyone.kosukuma.com/og-image.png"],
   },
 };
 
