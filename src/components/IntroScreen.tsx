@@ -80,7 +80,7 @@ export default function IntroScreen({ onStart }: Props) {
             className="font-[family-name:var(--font-mono)] text-sm tracking-[0.3em] uppercase"
             style={{ color: "rgba(255,255,255,0.7)" }}
           >
-            Begin
+            はじめる
           </span>
         </div>
       </motion.button>

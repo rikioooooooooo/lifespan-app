@@ -259,7 +259,7 @@ function CountdownTimer({
         className="text-[clamp(10px,1.1vw,14px)] mt-2 tracking-[0.2em] font-[family-name:var(--font-mono)]"
         style={{ color: BLACK_SUB }}
       >
-        SECONDS
+        秒
       </p>
     </div>
   );
@@ -310,7 +310,7 @@ export default function ResultScreen({ result, onRestart }: Props) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.8 }}
-      className="flex flex-col items-center min-h-screen px-6 py-12"
+      className="flex flex-col items-center min-h-dvh px-6 py-12"
       style={{ backgroundColor: "#ffffff" }}
     >
       {/* Skip button */}
@@ -322,7 +322,7 @@ export default function ResultScreen({ result, onRestart }: Props) {
           className="fixed bottom-8 z-20 cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
         >
           <span className="text-[clamp(10px,1vw,14px)] tracking-[0.2em]" style={{ color: BLACK_SUB }}>
-            skip →
+            スキップ →
           </span>
         </motion.button>
       )}
@@ -353,7 +353,7 @@ export default function ResultScreen({ result, onRestart }: Props) {
                   className="font-[family-name:var(--font-mono)] text-xs tracking-[0.4em]"
                   style={{ color: RED }}
                 >
-                  ANALYZING
+                  分析中
                 </p>
               </motion.div>
               <EKGLine />
@@ -436,7 +436,7 @@ export default function ResultScreen({ result, onRestart }: Props) {
                     className="text-[clamp(10px,1.1vw,14px)] mt-2 tracking-[0.2em] font-[family-name:var(--font-mono)]"
                     style={{ color: BLACK_SUB }}
                   >
-                    SECONDS
+                    秒
                   </p>
                 </motion.div>
               )}
@@ -594,11 +594,11 @@ export default function ResultScreen({ result, onRestart }: Props) {
                   className="font-[family-name:var(--font-mono)] text-[clamp(12px,1.2vw,16px)] tracking-[0.3em] uppercase"
                   style={{ color: BLACK }}
                 >
-                  {copied ? "Copied!" : "Share"}
+                  {copied ? "コピーしました" : "シェアする"}
                 </span>
               </button>
 
-              <button onClick={onRestart} className="cursor-pointer active:scale-95">
+              <button onClick={onRestart} className="cursor-pointer active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center px-4">
                 <span className="text-[clamp(10px,1vw,14px)] tracking-[0.15em]" style={{ color: BLACK_SUB }}>
                   もう一度やる
                 </span>

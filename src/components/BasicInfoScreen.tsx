@@ -54,7 +54,7 @@ export default function BasicInfoScreen({ onSubmit }: Props) {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.5 }}
-        className="flex gap-3 mb-10"
+        className="flex flex-wrap justify-center gap-3 mb-10"
       >
         {(["male", "female", "other"] as const).map((g) => {
           const label = g === "male" ? "男性" : g === "female" ? "女性" : "どちらでもない";
@@ -140,7 +140,7 @@ export default function BasicInfoScreen({ onSubmit }: Props) {
           className="font-[family-name:var(--font-mono)] text-sm tracking-[0.3em] uppercase"
           style={{ color: canProceed ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.2)" }}
         >
-          Next
+          次へ
         </span>
       </motion.button>
     </motion.div>
