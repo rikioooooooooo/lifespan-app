@@ -34,21 +34,18 @@ function getScaleColor(index: number, dir: 1 | -1, isSelected: boolean) {
 }
 
 export default function QuestionScreen({ basicInfo, onComplete }: Props) {
-  const [answers, setAnswers] = useState<Answers>(() => {
-    const initial: Answers = {};
-    for (const q of questions) {
-      if (q.type === "sleep") initial[q.id] = 7;
-    }
-    return initial;
-  });
+  const [answers, setAnswers] = useState<Answers>({});
   const [sleepValue, setSleepValue] = useState(7);
+  const sleepQuestionIds = useMemo(() => questions.filter(q => q.type === "sleep").map(q => q.id), []);
   const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const total = questions.length;
   const answeredCount = Object.keys(answers).length;
-  const progress = (answeredCount / total) * 100;
-  const allAnswered = answeredCount >= total;
+  const unansweredSleep = sleepQuestionIds.filter(id => answers[id] === undefined).length;
+  const effectiveAnswered = answeredCount + unansweredSleep;
+  const progress = (effectiveAnswered / total) * 100;
+  const allAnswered = effectiveAnswered >= total;
 
   useEffect(() => {
     setBackgroundProgress(answeredCount / total);
@@ -92,8 +89,12 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
   );
 
   const handleSubmit = useCallback(() => {
-    onComplete(answers);
-  }, [answers, onComplete]);
+    const final = { ...answers };
+    for (const id of sleepQuestionIds) {
+      if (final[id] === undefined) final[id] = sleepValue;
+    }
+    onComplete(final);
+  }, [answers, onComplete, sleepQuestionIds, sleepValue]);
 
   const progressColor = `rgba(255,${Math.max(0, Math.round(255 - progress * 2.2))},${Math.max(0, Math.round(255 - progress * 2.4))},${0.35 + progress * 0.003})`;
 
@@ -317,7 +318,7 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
               className="font-[family-name:var(--font-mono)] text-[10px] tracking-[0.2em] mt-6"
               style={{ color: "rgba(255,255,255,0.3)" }}
             >
-              残り {total - answeredCount} 問
+              残り {total - effectiveAnswered} 問
             </p>
           )}
         </div>
