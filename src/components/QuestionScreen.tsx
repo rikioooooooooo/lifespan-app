@@ -34,7 +34,13 @@ function getScaleColor(index: number, dir: 1 | -1, isSelected: boolean) {
 }
 
 export default function QuestionScreen({ basicInfo, onComplete }: Props) {
-  const [answers, setAnswers] = useState<Answers>({});
+  const [answers, setAnswers] = useState<Answers>(() => {
+    const initial: Answers = {};
+    for (const q of questions) {
+      if (q.type === "sleep") initial[q.id] = 7;
+    }
+    return initial;
+  });
   const [sleepValue, setSleepValue] = useState(7);
   const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
