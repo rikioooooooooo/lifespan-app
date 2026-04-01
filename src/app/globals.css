@@ -137,11 +137,10 @@ html, body {
 /* Flicker effect for countdown last digit */
 @keyframes flicker {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-  75% { opacity: 0.95; }
+  50% { opacity: 0.92; }
 }
 .countdown-flicker {
-  animation: flicker 1s ease-in-out infinite;
+  animation: flicker 2s ease-in-out infinite;
 }
 
 /* Number input arrows hidden */
@@ -183,14 +182,11 @@ input[type="number"] {
 /* Drop shake — numbers trembling while dropping */
 @keyframes drop-shake {
   0%, 100% { transform: translateX(0); }
-  10% { transform: translateX(-1.5px); }
-  30% { transform: translateX(1px); }
-  50% { transform: translateX(-0.5px); }
-  70% { transform: translateX(1.5px); }
-  90% { transform: translateX(-1px); }
+  25% { transform: translateX(-0.5px); }
+  75% { transform: translateX(0.5px); }
 }
 .drop-shake {
-  animation: drop-shake 0.15s linear infinite;
+  animation: drop-shake 0.3s ease-in-out infinite;
 }
 
 /* Reduced motion */

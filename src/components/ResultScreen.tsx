@@ -77,7 +77,7 @@ function useDropCounter(result: LifespanResult) {
     const tick = (now: number) => {
       const p = Math.min((now - start) / duration, 1);
       // easeInOutCubic — starts slow, accelerates hard, slows at end
-      const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+      const eased = 1 - Math.pow(1 - p, 3);
       const val = Math.round(from + (target - from) * eased);
       displayRef.current = val;
       setDisplaySeconds(val);
@@ -188,7 +188,7 @@ function CountdownTimer({
     const start = performance.now();
     const tick = (now: number) => {
       const p = Math.min((now - start) / duration, 1);
-      const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+      const eased = 1 - Math.pow(1 - p, 3);
       const v = Math.round(from + (to - from) * eased);
       displayRef.current = v;
       setDisplaySeconds(v);
@@ -340,14 +340,14 @@ export default function ResultScreen({ result, onRestart }: Props) {
           >
             <div className="text-center flex flex-col items-center gap-8">
               <motion.div
-                animate={{ y: [0, -8, 0], scale: [1, 1.02, 1] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                animate={{ y: [0, -4, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               >
                 <KosukumaIllustration size={100} />
               </motion.div>
               <motion.div
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 2.5, repeat: Infinity }}
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               >
                 <p
                   className="font-[family-name:var(--font-mono)] text-xs tracking-[0.4em]"
@@ -391,10 +391,10 @@ export default function ResultScreen({ result, onRestart }: Props) {
               {drop.phase === "reveal" && (
                 <motion.div
                   key="reveal"
-                  initial={{ opacity: 0, scale: 0.5, filter: "blur(10px)" }}
-                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }}
-                  transition={{ duration: 1.2, ease: "easeOut" }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
                   className="text-center"
                 >
                   <span
