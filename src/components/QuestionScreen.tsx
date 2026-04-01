@@ -85,10 +85,6 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
     [scrollToNext]
   );
 
-  const handleSleepSubmit = useCallback((questionId: number) => {
-    handleAnswer(questionId, sleepValue);
-  }, [handleAnswer, sleepValue]);
-
   const handleSubmit = useCallback(() => {
     onComplete(answers);
   }, [answers, onComplete]);
@@ -287,7 +283,11 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                         max={12}
                         step={0.5}
                         value={sleepValue}
-                        onChange={(e) => setSleepValue(Number(e.target.value))}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          setSleepValue(v);
+                          handleAnswer(question.id, v);
+                        }}
                         className="w-56 sleep-slider"
                       />
 
@@ -295,25 +295,6 @@ export default function QuestionScreen({ basicInfo, onComplete }: Props) {
                         <span className="text-[10px]" style={{ color: "rgba(255,60,60,0.5)" }}>3時間</span>
                         <span className="text-[10px]" style={{ color: "rgba(255,60,60,0.5)" }}>12時間</span>
                       </div>
-
-                      <button
-                        onClick={() => handleSleepSubmit(question.id)}
-                        className="mt-1 px-8 py-2.5 border transition-all duration-300 cursor-pointer hover:bg-red-900/10 active:scale-95"
-                        style={{
-                          borderColor: "rgba(255,40,40,0.25)",
-                          borderRadius: "2px",
-                          boxShadow: "0 0 12px rgba(255,20,20,0.04)",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 0 20px rgba(255,20,20,0.25), 0 0 6px rgba(255,40,40,0.15)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 0 12px rgba(255,20,20,0.04)"; }}
-                      >
-                        <span
-                          className="font-[family-name:var(--font-mono)] text-xs tracking-[0.3em] uppercase"
-                          style={{ color: "rgba(255,255,255,0.75)" }}
-                        >
-                          OK
-                        </span>
-                      </button>
                     </div>
                   )}
                 </motion.div>
