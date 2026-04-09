@@ -267,7 +267,7 @@ function CountdownTimer({
 
 export default function ResultScreen({ result, onRestart }: Props) {
   const [stage, setStage] = useState<RevealStage>("loading");
-  const [countdownMode, setCountdownMode] = useState<CountdownMode>("lifespan");
+  const [countdownMode, setCountdownMode] = useState<CountdownMode>("awake");
   const [copied, setCopied] = useState(false);
   const drop = useDropCounter(result);
 
